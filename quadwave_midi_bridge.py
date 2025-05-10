@@ -18,6 +18,7 @@ MFG_ID = [0x00, 0x22, 0x0A]
 NUM_STRINGS, MAX_TOUCHES = 4, 5   # Quadwave sends max 5 touches
 NECK_EVENT_SIZE = 12              # 4 strings × 3 bytes
 TOUCHPAD_EVENT_SIZE = 1 + 5 * MAX_TOUCHES
+CONFIG_EVENT_SIZE = 75
 WIN = platform.system() == "Windows"
 
 # ───────────────── neck bit ↔ fret maps ────────────────────
@@ -160,6 +161,11 @@ class QuadwaveBridge:
                     print(f"Touch {tid} released at x={x} y={y}")
                 elif kind == "drag":
                     print(f"Touch {tid} dragged to x={x} y={y}")
+        elif len(payload) == CONFIG_EVENT_SIZE: # Handle Configuration Change event (5 presses on touchpad)
+            colors = ['blue', 'green', 'purple']
+            config_id = payload[0]
+            print(f"Config set to {colors[config_id]}")
+            print(f"Firmware version: {payload[1]}.{payload[2]}.{payload[3]}")
 
 # ───────────────── CLI ─────────────────────────────────────
 

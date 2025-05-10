@@ -9,11 +9,12 @@ generate any MIDI you like.
 
 ## What It Prints
 
-| Input         | Console output                                                          |
-| ------------- | ----------------------------------------------------------------------- |
-| Neck packet   | `String N fret F ON` **or** `OFF` for every state change                |
-| Touch panel   | `pressed` / `released` and **`dragged`** (when X/Y moves while pressed) |
-| Anything else | Sent straight through to the chosen MIDI OUT                            |
+| Input                        | Console output                                                          |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| Neck packet                  | `String N fret F ON` **or** `OFF` for every state change                |
+| Touch panel                  | `pressed` / `released` and **`dragged`** (when X/Y moves while pressed) |
+| Config change (5‑finger tap) | Config set to <color> + Firmware version: Major.Minor.Patch                         |
+| Anything else                | Sent straight through to the chosen MIDI OUT                            |
 
 Example stream:
 
@@ -49,23 +50,31 @@ In Ableton or any DAW's settings, select the new MIDI output.
 
 ## Packet Format (firmware ≥ v2.4.0)
 
-### Neck
+### Neck (12 bytes)
 
 * **3 bytes per string** → 12‑byte payload.
 * After de‑7‑bit‑ifying you get a **16‑bit mask** – **bit‑0 = fret‑1 … bit‑15 =
   fret‑16**.  No gaps, no padding.
 
-### Touch panel
+### Touch panel (26 bytes)
 
 * Always `1 + 5×MAX_TOUCHES = 26` data bytes.
 * Byte 0 = number of active touches.  Each touch =
   `x_lo, x_hi, y_lo, y_hi, pressed_bool` (14‑bit coords).
 
+### Config change (75 bytes)
+
+* Sent when all 5 touch IDs are pressed at once: `config_id  fw_major  fw_minor  fw_patch`.
+* config_id → 0 = blue, 1 = green, 2 = purple
+* As well as the 4 bytes above, it includes the full stored eeprom configuration on the Quadwave.
+  This structure is currently not documented.
+* The bridge simply prints the decoded colour and firmware version.
+
 ---
 
 ## Hacking
 
-Start from the QuadwaveBridge's _handle method.
+Start at the QuadwaveBridge's _handle method. It's fairly self-explanatory.
 
 ---
 
