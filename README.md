@@ -12,7 +12,7 @@ generate any MIDI you like.
 | Input                        | Console output                                                          |
 | ---------------------------- | ----------------------------------------------------------------------- |
 | Neck packet                  | `String N fret F ON` **or** `OFF` for every state change                |
-| Touch panel                  | `pressed` / `released` and **`dragged`** (when X/Y moves while pressed) |
+| Touch panel                  | `pressed` / `released` and `dragged` (when X/Y moves while pressed) |
 | Config change (5‑finger tap) | Config set to <color> + Firmware version: Major.Minor.Patch                         |
 | Anything else                | Sent straight through to the chosen MIDI OUT                            |
 
