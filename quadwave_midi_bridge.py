@@ -63,7 +63,7 @@ class TouchState:
 
     def update(self, payload: List[int]):
         self.prev = self.curr
-        nt = min(payload[0], MAX_TOUCHES)
+        nt = MAX_TOUCHES
         touches = []
         idx = 1
         for _ in range(nt):
