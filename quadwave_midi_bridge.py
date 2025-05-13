@@ -16,9 +16,6 @@ import mido
 
 MFG_ID = [0x00, 0x22, 0x0A]
 NUM_STRINGS, MAX_TOUCHES = 4, 5   # Quadwave sends max 5 touches
-NECK_EVENT_SIZE = 12              # 4 strings × 3 bytes
-TOUCHPAD_EVENT_SIZE = 1 + 5 * MAX_TOUCHES
-CONFIG_EVENT_SIZE = 75
 WIN = platform.system() == "Windows"
 
 # ───────────────── neck bit ↔ fret maps ────────────────────
@@ -67,15 +64,16 @@ class TouchState:
         touches = []
         idx = 1
         for _ in range(nt):
-            if idx + 5 > len(payload):
+            if idx + 6 > len(payload):
                 break
-            x_lo, x_hi, y_lo, y_hi, pressed = payload[idx : idx + 5]
+            x_lo, x_hi, y_lo, y_hi, z, pressed = payload[idx : idx + 6]
             touches.append({
                 "x": (x_hi << 7) | x_lo,
                 "y": (y_hi << 7) | y_lo,
+                "z": z,
                 "pressed": bool(pressed),
             })
-            idx += 5
+            idx += 6
         self.curr = touches
 
     def events(self):
@@ -83,14 +81,14 @@ class TouchState:
         ev = []
         maxn = max(len(self.prev), len(self.curr))
         for tid in range(maxn):
-            prev = self.prev[tid] if tid < len(self.prev) else {"x":0,"y":0,"pressed":False}
-            curr = self.curr[tid] if tid < len(self.curr) else {"x":0,"y":0,"pressed":False}
+            prev = self.prev[tid] if tid < len(self.prev) else {"x":0,"y":0,"z":0,"pressed":False}
+            curr = self.curr[tid] if tid < len(self.curr) else {"x":0,"y":0,"z":0,"pressed":False}
             if not prev["pressed"] and curr["pressed"]:
-                ev.append((tid, curr["x"], curr["y"], "pressed"))
+                ev.append((tid, curr["x"], curr["y"], curr["z"], "pressed"))
             elif prev["pressed"] and not curr["pressed"]:
-                ev.append((tid, curr["x"], curr["y"], "released"))
+                ev.append((tid, curr["x"], curr["y"], curr["z"], "released"))
             elif prev["pressed"] and curr["pressed"] and ((prev["x"]!=curr["x"]) or (prev["y"]!=curr["y"])):
-                ev.append((tid, curr["x"], curr["y"], "drag"))
+                ev.append((tid, curr["x"], curr["y"], curr["z"], "drag"))
         return ev
 
 # ───────────────── bridge ─────────────────────────────────
@@ -147,21 +145,22 @@ class QuadwaveBridge:
         data = list(msg.data)
         if data[:3] != MFG_ID:
             self.outport.send(msg); return
-        payload = data[3:]
-        if len(payload) == NECK_EVENT_SIZE: # Handle Neck event
+        msg_id = data[3]
+        payload = data[4:]
+        if msg_id == 0x01: # Handle Neck event
             self.neck.update(payload)
             for s, fret, on in self.neck.events():
                 print(f"String {s+1} fret {fret} {'ON' if on else 'OFF'}")
-        elif len(payload) == TOUCHPAD_EVENT_SIZE: # Handle Touchpad event
+        elif msg_id == 0x02: # Handle Touchpad event
             self.touch.update(payload)
-            for tid, x, y, kind in self.touch.events():
+            for tid, x, y, z, kind in self.touch.events():
                 if kind == "pressed":
-                    print(f"Touch {tid} pressed at x={x} y={y}")
+                    print(f"Touch {tid} pressed at x={x} y={y} z={z}")
                 elif kind == "released":
-                    print(f"Touch {tid} released at x={x} y={y}")
+                    print(f"Touch {tid} released at x={x} y={y} z={z}")
                 elif kind == "drag":
-                    print(f"Touch {tid} dragged to x={x} y={y}")
-        elif len(payload) == CONFIG_EVENT_SIZE: # Handle Configuration Change event (5 presses on touchpad)
+                    print(f"Touch {tid} dragged to x={x} y={y} z={z}")
+        elif msg_id == 0x03: # Handle Configuration Change event (5 presses on touchpad)
             colors = ['blue', 'green', 'purple']
             config_id = payload[0]
             print(f"Config set to {colors[config_id]}")
