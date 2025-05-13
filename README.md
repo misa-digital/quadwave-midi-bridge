@@ -41,8 +41,9 @@ Install loopMIDI (free) and create a loopback port called "misa-loopback".
 python quadwave_midi_bridge.py --out-port "misa-loopback"
 ```
 
-Make sure the Misa Quadwave is in 'Raw Mode'. This mode will send the Sysex messages
-expected by the Quadwave Bridge.
+Make sure the Misa Quadwave is in 'Raw Mode' (press and hold the highest fret on 
+each string for 3 seconds). This mode will send the Sysex messages expected by the
+Quadwave Bridge.
 
 In Ableton or any DAW's settings, select the new MIDI output.
 
@@ -50,24 +51,25 @@ In Ableton or any DAW's settings, select the new MIDI output.
 
 ## Packet Format (firmware ≥ v2.4.0)
 
-### Neck (12 bytes)
+### Neck (12 byte payload)
 
 * **3 bytes per string** → 12‑byte payload.
 * After de‑7‑bit‑ifying you get a **16‑bit mask** – **bit‑0 = fret‑1 … bit‑15 =
   fret‑16**.  No gaps, no padding.
 
-### Touch panel (26 bytes)
+### Touch panel (31 byte payload)
 
-* Always `1 + 5×MAX_TOUCHES = 26` data bytes.
+* Always `1 + 5×MAX_TOUCHES = 31` data bytes.
 * Byte 0 = number of active touches.  Each touch =
-  `x_lo, x_hi, y_lo, y_hi, pressed_bool` (14‑bit coords).
+  `x_lo, x_hi, y_lo, y_hi, z (pressure), pressed_bool` 
+* X and Y coords are 14‑bit.
 
-### Config change (75 bytes)
+### Config change (75 byte payload)
 
 * Sent when all 5 touch IDs are pressed at once: `config_id  fw_major  fw_minor  fw_patch`.
 * config_id → 0 = blue, 1 = green, 2 = purple
 * As well as the 4 bytes above, it includes the full stored eeprom configuration on the Quadwave.
-  This structure is currently not documented.
+  This structure is currently not documented here.
 * The bridge simply prints the decoded colour and firmware version.
 
 ---
